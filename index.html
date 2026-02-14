@@ -91,6 +91,11 @@ async function fetchNews() {
     const proxyUrl = "https://api.allorigins.win/get?url=" + encodeURIComponent(rssUrl);
 
     const res = await fetch(proxyUrl);
+
+    if (!res.ok) {
+      throw new Error("HTTPエラー");
+    }
+
     const data = await res.json();
 
     const parser = new DOMParser();
