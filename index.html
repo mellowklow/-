@@ -100,22 +100,30 @@ let lastNews = "";
 
 async function fetchNews() {
   try {
-    const url = "https://api.rss2json.com/v1/api.json?rss_url=" +
-      encodeURIComponent("https://news.yahoo.co.jp/rss/topics/top-picks.xml");
+    const url =
+      "https://api.allorigins.win/raw?url=" +
+      encodeURIComponent(
+        "https://news.yahoo.co.jp/rss/topics/top-picks.xml"
+      );
 
     const res = await fetch(url);
-    const data = await res.json();
 
-    if (!data.items) return lastNews;
+    if (!res.ok) throw new Error("取得失敗");
 
-    const headlines = data.items
+    const text = await res.text();
+
+    const parser = new DOMParser();
+    const xml = parser.parseFromString(text, "text/xml");
+    const items = xml.querySelectorAll("item");
+
+    const headlines = Array.from(items)
       .slice(0, 6)
-      .map(item => item.title);
+      .map(item => item.querySelector("title").textContent);
 
     return headlines.join(" ｜ ");
 
-  } catch (error) {
-    console.log("ニュース取得エラー", error);
+  } catch (err) {
+    console.log("ニュース取得エラー", err);
     return lastNews || "ニュース取得エラー";
   }
 }
