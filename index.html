@@ -18,26 +18,28 @@ body {
   height: 75px;
   display: flex;
   align-items: center;
-  background: linear-gradient(90deg, #1a1a1a 0%, #222 50%, #1a1a1a 100%);
+  background: #1a1a1a;
   border-top: 5px solid #ff6600;
   overflow: hidden;
 }
 
 /* ===== 左固定ラベル ===== */
 .news-label {
+  width: 180px;              /* 固定幅で崩れ防止 */
+  min-width: 180px;
   display: flex;
+  justify-content: center;
   align-items: center;
-  padding: 0 25px;
   background: linear-gradient(135deg, #ff6600, #ff3300);
   color: #fff;
   font-weight: bold;
   font-size: 22px;
-  height: 100%;
   letter-spacing: 2px;
+  white-space: nowrap;       /* 縦化防止 */
 }
 
 .live {
-  margin-left: 12px;
+  margin-left: 10px;
   font-size: 14px;
   background: #c40000;
   padding: 4px 8px;
@@ -52,30 +54,20 @@ body {
 
 /* ===== ニューステキスト ===== */
 .news-ticker {
+  flex: 1;
   white-space: nowrap;
   padding-left: 100%;
   font-size: 28px;
   color: #ffffff;
-  animation: scroll 90s linear infinite; /* 超ゆったり */
+  animation: scroll 90s linear infinite;
 }
 
-/* スクロール */
 @keyframes scroll {
   0% { transform: translateX(0); }
   100% { transform: translateX(-100%); }
 }
 
-/* 更新時フェード（transform触らない） */
-.fade-in {
-  animation: fadeIn 0.6s ease;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-/* 重要ワード強調 */
+/* 重要ワード */
 .important {
   color: #ffcc00;
   font-weight: bold;
@@ -86,8 +78,7 @@ body {
 
 <div class="news-bar">
   <div class="news-label">
-    今話題
-    <div class="live">LIVE</div>
+    今話題 <span class="live">LIVE</span>
   </div>
   <div class="news-ticker" id="tickerText">
     ニュース取得中...
@@ -98,23 +89,19 @@ body {
 
 let lastNews = "";
 
-/* ===== ニュース取得（安定版） ===== */
+/* ===== 安定取得（get方式） ===== */
 async function fetchNews() {
   try {
-    const url =
-      "https://api.allorigins.win/raw?url=" +
-      encodeURIComponent(
-        "https://news.yahoo.co.jp/rss/topics/top-picks.xml"
-      );
+    const rssUrl = "https://news.yahoo.co.jp/rss/topics/top-picks.xml";
+    const proxyUrl =
+      "https://api.allorigins.win/get?url=" +
+      encodeURIComponent(rssUrl);
 
-    const res = await fetch(url);
-
-    if (!res.ok) throw new Error("取得失敗");
-
-    const text = await res.text();
+    const res = await fetch(proxyUrl);
+    const data = await res.json();
 
     const parser = new DOMParser();
-    const xml = parser.parseFromString(text, "text/xml");
+    const xml = parser.parseFromString(data.contents, "text/xml");
     const items = xml.querySelectorAll("item");
 
     const headlines = Array.from(items)
@@ -129,7 +116,7 @@ async function fetchNews() {
   }
 }
 
-/* ===== 重要ワード強調 ===== */
+/* 重要ワード強調 */
 function highlightImportant(text) {
   const keywords = ["速報","地震","緊急","総理","日銀","円安","事件"];
   keywords.forEach(word => {
@@ -139,26 +126,16 @@ function highlightImportant(text) {
   return text;
 }
 
-/* ===== 更新処理 ===== */
 async function updateTicker() {
   const news = await fetchNews();
 
   if (news && news !== lastNews) {
     lastNews = news;
-
-    const highlighted = highlightImportant(news);
-    const ticker = document.getElementById("tickerText");
-
-    ticker.innerHTML = highlighted + " ｜ ";
-
-    /* transformを触らず安全にフェード */
-    ticker.classList.remove("fade-in");
-    void ticker.offsetWidth;
-    ticker.classList.add("fade-in");
+    document.getElementById("tickerText").innerHTML =
+      highlightImportant(news) + " ｜ ";
   }
 }
 
-/* 初回＋30秒更新 */
 updateTicker();
 setInterval(updateTicker, 30000);
 
@@ -166,4 +143,5 @@ setInterval(updateTicker, 30000);
 
 </body>
 </html>
+
 
