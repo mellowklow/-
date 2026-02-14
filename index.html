@@ -96,16 +96,18 @@ async function fetchNews() {
 async function fetchStocks() {
   try {
     const url = "https://query1.finance.yahoo.com/v7/finance/quote?symbols=EWJ,JPY=X";
-    const proxyUrl = "https://api.allorigins.win/get?url=" + encodeURIComponent(url);
+
+    const proxyUrl = "https://corsproxy.io/?" + encodeURIComponent(url);
 
     const res = await fetch(proxyUrl);
-    const proxyData = await res.json();
-    const data = JSON.parse(proxyData.contents);
+    const data = await res.json();
 
     const results = data.quoteResponse.result;
 
     const ewj = results.find(r => r.symbol === "EWJ");
     const usd = results.find(r => r.symbol === "JPY=X");
+
+    if (!ewj || !usd) return;
 
     const ewjPrice = ewj.regularMarketPrice;
     const usdPrice = usd.regularMarketPrice;
@@ -128,8 +130,8 @@ async function fetchStocks() {
       `【日経ETF(EWJ)】${ewjPrice.toFixed(2)} ${ewjSymbol}` +
       ` ｜ 【ドル円】${usdPrice.toFixed(2)} ${usdSymbol}`;
 
-  } catch {
-    // 失敗時は前回値維持
+  } catch (err) {
+    console.log("株価取得エラー", err);
   }
 }
 
