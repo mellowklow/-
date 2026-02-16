@@ -66,13 +66,13 @@ body {
   animation: scroll 60s linear infinite;
 }
 
-/* 少し余白を残すループ */
+/* ループ短縮＋余白確保 */
 @keyframes scroll {
   from { transform: translateX(0); }
   to   { transform: translateX(-60%); }
 }
 
-/* 重要ワード */
+/* 重要ワード強調 */
 .important {
   color: #ffff00;
 }
@@ -96,21 +96,31 @@ body {
 
 let lastNews = "";
 
-/* ===== ニュース取得 ===== */
+/* ===== ニュース取得（安定版） ===== */
 async function fetchNews() {
   try {
     const rssUrl = "https://news.yahoo.co.jp/rss/topics/top-picks.xml";
- const proxyUrl =
-  "https://corsproxy.io/?" +
-  encodeURIComponent(rssUrl);
 
-const res = await fetch(proxyUrl);
-const text = await res.text();
+    const proxyUrl =
+      "https://corsproxy.io/?" +
+      encodeURIComponent(rssUrl);
 
-const parser = new DOMParser();
-const xml = parser.parseFromString(text, "text/xml");
+    const res = await fetch(proxyUrl);
+
+    if (!res.ok) {
+      throw new Error("ネットワーク応答異常");
+    }
+
+    const text = await res.text();
+
+    const parser = new DOMParser();
+    const xml = parser.parseFromString(text, "text/xml");
 
     const items = xml.querySelectorAll("item");
+
+    if (!items.length) {
+      throw new Error("RSS解析失敗");
+    }
 
     const headlines = Array.from(items)
       .slice(0, 6)
@@ -119,12 +129,12 @@ const xml = parser.parseFromString(text, "text/xml");
     return headlines.join(" ｜ ");
 
   } catch (err) {
-    console.log("ニュース取得エラー", err);
-    return lastNews || "ニュース取得エラー";
+    console.log("ニュース取得エラー:", err);
+    return lastNews || "現在ニュースを取得できません";
   }
 }
 
-/* 重要ワード */
+/* ===== 重要ワード装飾 ===== */
 function highlightImportant(text) {
   const keywords = ["速報","地震","緊急","総理","日銀","円安","事件"];
   keywords.forEach(word => {
@@ -134,6 +144,7 @@ function highlightImportant(text) {
   return text;
 }
 
+/* ===== 更新処理 ===== */
 async function updateTicker() {
   const news = await fetchNews();
 
@@ -147,11 +158,13 @@ async function updateTicker() {
   }
 }
 
+/* 初回実行 */
 updateTicker();
+
+/* 30秒ごと更新 */
 setInterval(updateTicker, 30000);
 
 </script>
 
 </body>
 </html>
-
